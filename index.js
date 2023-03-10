@@ -2,43 +2,77 @@ require('dotenv').config()
 //console.log(process.env)
 //const { generateDependencyReport } = require('@discordjs/voice');
 //console.log(generateDependencyReport());
-const {Client, Events, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const { Player, useQueue } = require('discord-player');
 const fs = require('node:fs');
+//const queue = useQueue(process.env.GUILD_ID);
 
-const events = fs.readdirSync("./events").filter((file) => file.endsWith(".js"));
-const commands = fs.readdirSync("./commands").filter((file) => file.endsWith(".js"));
-const logic = fs.readdirSync("./logic").filter((file) => file.endsWith(".js"));
+//const events = fs.readdirSync("./events").filter((file) => file.endsWith(".js"));
+//const logic = fs.readdirSync("./logic").filter((file) => file.endsWith(".js"));
 
 const client = new Client({intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.MessageContent] });
+        GatewayIntentBits.MessageContent], });
 
 const player = new Player(client);
-client.commands = new Collection();
 
 player.config = {
+    prefix: ";",
+    playing: ";play (music)",
+    defaultVolume: 50,
+    maxVolume: 200,
+    autoLeave: true,
+    displayVoiceState: true,
     leaveOnStop: false,
     leaveOnEmpty: false,
     emitNewSongOnly: true,
-    emitAddSongWhenCreatingQueue: false,
-    // emitAddListWhenCreatingQueue: false,
 };
 
-//const queue = client.player.nodes.get(process.env.GUILD_ID);
+player.config.ytdlOptions = {
+    filter: 'audioonly',
+    quality: 'highestaudio',
+    highWaterMark: 1 << 10
+}
 
-client.once("error", (message, error) => {
-    console.error(`Error: ${error} ${message}`);
+client.commands = new Collection();
+const commandFiles = fs.readdirSync("./commands").filter((file) => file.endsWith(".js"));
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    client.commands.set(command.name.toLowerCase(), command);
+}
+console.log(client.commands);
+
+client.once("error", (message) => {
+    console.error(`Error: ${message}`);
 });
 
-client.once(Events.ClientReady, c => {
+client.once('clientReady', c => {
     console.log(`✅ ${c.user.tag} is online`)
+
+});
+/*
+client.on('messageCreate', async message => {
+    if (message.author.bot || !message.guild) return;
+    if (!client.application?.owner) await client.application?.fetch();
+
+    if (message.content === '!deploy') {
+        await message.guild.commands
+            .set(client.commands)
+            .then(() => {
+                message.reply('Deployed!');
+            })
+            .catch(err => {
+                message.reply('Could not deploy commands! Make sure the bot has the application.commands permission!');
+                console.error(err);
+            });
+    }
 });
 
-client.on(Events.MessageCreate, message => {
+
+client.on('messageCreate', message => {
     if (message.author.bot || !message.guild) return;
     const prefix = "?"
     const args = message.content.slice(prefix.length).trim().split(/ +/g)
@@ -50,19 +84,24 @@ client.on(Events.MessageCreate, message => {
             message
         })
     }
+});
+*/
 
-    if (message.content.toLowerCase() === prefix + "pause") {
-        player.pause(message);
-        message.reply("Musiikin toisto tauolla.");
-    }
+client.on('messageCreate', async message => {
+    console.log(message.client.id);
+    const command = client.commands.get(message);
+    command.execute(client, message);
 });
 
 player.events.on('playerStart', (queue, track) => {
-    // we will later define queue.metadata object while creating the queue
-//    queue.metadata.channel.send(`Started playing **${track.title}**!`);
-//    queue.metadata.channel.send(`Started playing **${track.duration}**!`);
+    console.log('pitäisi soittaa');
+    const channel = queue.metadata.channel; // queue.metadata is your "message" object
+    channel.send(`🎶 | Nyt toistaa **${track.title}**`);
+    channel.send(`Kappaleen pituus **${track.duration}**!`);
 });
 
+
+//if (!queue.deleted) queue.delete();
 
 client.destroy();
 
