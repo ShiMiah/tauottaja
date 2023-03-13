@@ -11,7 +11,6 @@
   "description": "",
   "dependencies": {
     "@discord-player/extractor": "^4.1.0",
-    "@discordjs/builders": "^1.4.0",
     "@discordjs/opus": "^0.9.0",
     "@discordjs/voice": "^0.14.0",
     "@distube/ytdl-core": "^4.11.7",

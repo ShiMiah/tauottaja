@@ -1,52 +1,72 @@
-const {QueryType} = require('discord-player');
+const { QueryType, useMasterPlayer, useQueue } = require('discord-player')
+const { EmbedBuilder } = require("discord.js");
 
 module.exports = {
-    name: 'play',
-    description: 'Play a song in your channel!',
-    type: 1,
-    utilization: '{prefix}play [song name/URL]',
+    name : 'play',
+    description : 'Play a song of your choice!',
+    voiceChannel : true,
+    options : [
+        {
+            name : 'biisi',
+            description: 'Mitä soitetaan?',
+            type : 3,
+            required : true
+        }
+    ],
 
-    async execute(client, message, command) {
+    async execute(interaction) {
         try {
-            const res = await client.player.search(command.join(' '), {
-                requestedBy: message.member,
-                searchEngine: QueryType.AUTO
-            });
+            const player = useMasterPlayer();
+            const query = interaction.options.getString('biisi', true);
+            console.log('biisi: **${query}**')
+            const results = await player.search(query);
 
-            await message.deferReply();
-
-            if (!res || !res.tracks.length)
-                return void message.followUp({content: 'No results were found!'});
-
-            await client.player.play(message.guild, {
-                metadata: {
-                    metadata: message.channel,
-                },
-                selfDeaf: true,
-                volume: 50,
-                leaveOnEmpty: true,
-                leaveOnEmptyCooldown: 300000,
-                leaveOnEnd: true,
-                leaveOnEndCooldown: 300000,
-            });
-            try {
-                if (!client.player.connection) await client.player.connect(message.member.voice.channel);
-            } catch {
-                void client.player(message.guildId);
-                return void message.followUp({
-                    content: 'Could not join your voice channel!',
+            if (!results.hasTracks()) { //Check if we found results for this query
+                await interaction.reply(`We found no tracks for ${query}!`);
+                return;
+            } else {
+                await player.play(interaction.member.voice.channel, results, {
+                    nodeOptions: {
+                        metadata: interaction.channel,
+                        //You can add more options over here
+                    },
                 });
             }
-            await message.followUp({
-                content: `⏱ | Loading your ${res.playlist ? 'playlist' : 'track'}...`,
-            });
-            await res.playlist ? client.player.addTrack(res.tracks) : client.player.addTrack(res.tracks[0]);
-            if (!client.player.playing) await client.player.play();
-        }catch (error) {
-            console.log(error);
-            await message.followUp({
-                content: 'There was an error trying to execute that command: ' + error.message,
-            });
+            await interaction.reply({content: `Loading your track(s)`});
+        }
+        /*
+            const queue = useQueue(interaction.guild.id)
+
+            //const searchResult = await player.search('biisi', {
+            //    requestedBy: interaction.user,
+            //    searchEngine: QueryType.AUTO
+            //});
+            await player.play(interaction.member.voice.channel, results);
+
+            await interaction.deferReply()
+
+
+            const embed = new EmbedBuilder()
+            function yess() {
+                const totalDurationMs = yes.track.playlist.tracks.reduce((a, c) => c.durationMS + a, 0)
+                const totalDurationSec = Math.floor(totalDurationMs / 1000);
+                const hours = Math.floor(totalDurationSec / 3600);
+                const minutes = Math.floor((totalDurationSec % 3600) / 60);
+                const seconds = totalDurationSec % 60;
+                const durationStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                return durationStr
+            }
+
+            embed
+                .setDescription(`${yes.track.playlist ? `**multiple tracks** from: **${yes.track.playlist.title}**` : `**${yes.track.title}**`}`)
+                .setThumbnail(`${yes.track.playlist ? `${yes.track.playlist.thumbnail.url}` : `${yes.track.thumbnail}`}`)
+                .setColor(`#00ff08`)
+                .setTimestamp()
+                .setFooter({ text: `Duration: ${yes.track.playlist ? `${yess()}` : `${yes.track.duration}`} | Event Loop Lag ${interaction.client.player.eventLoopLag.toFixed(0)}` })
+            return interaction.editReply({ embeds: [embed ]})
+            */
+        catch (error) {
+            console.log(error)
         }
     }
-};
+}
