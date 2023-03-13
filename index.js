@@ -7,7 +7,7 @@ const { Player, useQueue } = require('discord-player');
 const fs = require('node:fs');
 //const queue = useQueue(process.env.GUILD_ID);
 
-//const events = fs.readdirSync("./events").filter((file) => file.endsWith(".js"));
+const events = fs.readdirSync("./events").filter((file) => file.endsWith(".js"));
 //const logic = fs.readdirSync("./logic").filter((file) => file.endsWith(".js"));
 
 const client = new Client({intents: [
@@ -37,12 +37,19 @@ player.config.ytdlOptions = {
     highWaterMark: 1 << 10
 }
 
+const eventFiles = fs.readdirSync("./events").filter((file) => file.endsWith(".js"));
+for (const file of eventFiles) {
+    const event = require(`./events/${file}`);
+    client.on(file.split('.')[0], event.bind(null, client));
+}
+
 client.commands = new Collection();
 const commandFiles = fs.readdirSync("./commands").filter((file) => file.endsWith(".js"));
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
     client.commands.set(command.name.toLowerCase(), command);
 }
+
 console.log(client.commands);
 
 client.once("error", (message) => {
@@ -93,12 +100,6 @@ client.on('messageCreate', async message => {
     command.execute(client, message);
 });
 
-player.events.on('playerStart', (queue, track) => {
-    console.log('pitäisi soittaa');
-    const channel = queue.metadata.channel; // queue.metadata is your "message" object
-    channel.send(`🎶 | Nyt toistaa **${track.title}**`);
-    channel.send(`Kappaleen pituus **${track.duration}**!`);
-});
 
 
 //if (!queue.deleted) queue.delete();
