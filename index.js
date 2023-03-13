@@ -7,7 +7,6 @@ const { Player, useQueue } = require('discord-player');
 const fs = require('node:fs');
 //const queue = useQueue(process.env.GUILD_ID);
 
-const events = fs.readdirSync("./events").filter((file) => file.endsWith(".js"));
 //const logic = fs.readdirSync("./logic").filter((file) => file.endsWith(".js"));
 
 const client = new Client({intents: [
@@ -60,25 +59,9 @@ client.once('clientReady', c => {
     console.log(`✅ ${c.user.tag} is online`)
 
 });
+
+//const queue = useQueue(interaction.guild.id);
 /*
-client.on('messageCreate', async message => {
-    if (message.author.bot || !message.guild) return;
-    if (!client.application?.owner) await client.application?.fetch();
-
-    if (message.content === '!deploy') {
-        await message.guild.commands
-            .set(client.commands)
-            .then(() => {
-                message.reply('Deployed!');
-            })
-            .catch(err => {
-                message.reply('Could not deploy commands! Make sure the bot has the application.commands permission!');
-                console.error(err);
-            });
-    }
-});
-
-
 client.on('messageCreate', message => {
     if (message.author.bot || !message.guild) return;
     const prefix = "?"
